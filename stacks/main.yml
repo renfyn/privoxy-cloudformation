@@ -55,6 +55,7 @@ Resources:
       Parameters:
         VpcId: !GetAtt VpcStack.Outputs.Vpc
         AmiId: !Ref AmiId
+        PrivoxyPort: !Ref PrivoxyPort
         KeyName: !Ref KeyName
         MinSize: !Ref PrivoxyMinSize
         MaxSize: !Ref PrivoxyMaxSize
@@ -64,4 +65,6 @@ Resources:
 
 Outputs:
   AutoscallingGroupId:
-    Value: Autoscalling.Outputs.AutoScalingGroup
+    Value: !Ref Autoscalling.Outputs.AutoScalingGroup
+  PrivoxyPort:
+    Value: !Ref PrivoxyPort
