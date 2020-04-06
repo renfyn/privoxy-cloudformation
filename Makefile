@@ -1,5 +1,3 @@
-#include .env
-
 ifndef AWS_PROFILE
 $(error You must specify AWS_PROFILE parameter)
 endif
