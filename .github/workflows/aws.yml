@@ -22,7 +22,7 @@ jobs:
 
     - name: Deploy Cloudformation
       env:
-        AWS_PROFILE: default
+        AWS_PROFILE: github
         AWS_REGION: ${{ secrets.AWS_REGION }}
         ROLE_ARN: ${{ secrets.ROLE_ARN }}
         BUCKET: ${{ secrets.BUCKET }}
