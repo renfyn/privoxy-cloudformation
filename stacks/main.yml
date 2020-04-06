@@ -65,6 +65,6 @@ Resources:
 
 Outputs:
   AutoscallingGroupId:
-    Value: !Ref Autoscalling.Outputs.AutoScalingGroup
+    Value: !GetAtt Autoscalling.Outputs.AutoScalingGroup
   PrivoxyPort:
     Value: !Ref PrivoxyPort
