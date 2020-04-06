@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: Coda infrastructure as code templates
+
+Parameters:
+  KeyName:
+    Type: String
+  InstanceType:
+    Description: "EC2 instance type."
+    Default: t2.micro
+    ConstraintDescription: 'must be a valid EC2 instance type.'
+    Type: String
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t3.micro
+      - c5.2xlarge
+  # Coda Parameters
+  AmiId:
+    Description: 'AMI id for Coda server.'
+    Type: AWS::EC2::Image::Id
+  PrivoxyMinSize:
+    Description: 'The Min Size for the Privoxy AutoScale group.'
+    Type: Number
+    Default: 1
+  PrivoxyMaxSize:
+    Description: 'The Max Size for the Privoxy AutoScale group.'
+    Type: Number
+    Default: 1
+  PrivoxyPort:
+    Description: 'Your Privoxy port number'
+    Type: Number
+    Default: 8118
+  NumberOfAZs:
+    Description: 'The Max NUmber of Subnets (one by AZ)'
+    Type: Number
+    Default: 1
+
+Resources:
+  VpcStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: vpc.yml
+      TimeoutInMinutes: 60
+      Parameters:
+        RegionAzs: !Ref NumberOfAZs
+
+  Autoscalling:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - VpcStack
+    Properties:
+      TemplateURL: autoscalling.yml
+      TimeoutInMinutes: 30
+      Parameters:
+        VpcId: !GetAtt VpcStack.Outputs.Vpc
+        AmiId: !Ref AmiId
+        KeyName: !Ref KeyName
+        MinSize: !Ref PrivoxyMinSize
+        MaxSize: !Ref PrivoxyMaxSize
+        InstanceType: !Ref InstanceType
+        Subnets: !GetAtt VpcStack.Outputs.PublicSubnets
+        AvailabilityZones: !GetAtt VpcStack.Outputs.AvailabilityZones
+
+Outputs:
+  AutoscallingGroupId:
+    Value: Autoscalling.Outputs.AutoScalingGroup

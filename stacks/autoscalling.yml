@@ -1,0 +1,182 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Privoxy spot Stack"
+
+Parameters:
+  VpcId:
+    Description: 'VPC identifier.'
+    Type: String
+  AmiId:
+    Description: 'AMI id for instance.'
+    Type: AWS::EC2::Image::Id
+  KeyName:
+    Description: 'The EC2 Key Pair to allow Remote Desktop access or SSH to the instances.'
+    Type: AWS::EC2::KeyPair::KeyName
+  MinSize:
+    Description: 'The Min Size for the AutoScalingGroup.'
+    Type: Number
+    Default: 1
+  MaxSize:
+    Description: 'The Max Size for the AutoScalingGroup.'
+    Type: Number
+    Default: 1
+  PrivoxyPort:
+    Description: 'Your Privoxy port number'
+    Type: Number
+    Default: 8118
+  InstanceType:
+    Description: "EC2 instance type."
+    ConstraintDescription: 'must be a valid EC2 instance type.'
+    Type: String
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t3.micro
+      - c5.2xlarge
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: 'Vpc Public Subnet list'
+  AvailabilityZones:
+    Description: 'Availability zones to use for autoscaling'
+    Type: 'List<AWS::EC2::AvailabilityZone::Name>'
+
+Resources:
+  CodaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/application/"
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: WriteCloudWatch
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'cloudwatch:PutMetricData'
+                  - 'cloudwatch:GetMetricStatistics'
+                  - 'cloudwatch:ListMetrics'
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                  - 'ec2:DescribeTags'
+                  - 's3:GetObject'
+                Resource: '*'
+
+  Profile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref CodaRole
+
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "Coda security group"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: !Ref PrivoxyPort
+          ToPort: !Ref PrivoxyPort
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  LaunchConfig:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Join ['',["template", !Ref "AWS::StackName"]]
+      LaunchTemplateData:
+        ImageId: !Ref AmiId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        IamInstanceProfile:
+          Arn: !GetAtt Profile.Arn
+        SecurityGroupIds:
+          - !Ref SecurityGroup
+        InstanceMarketOptions:
+          MarketType: spot
+        BlockDeviceMappings:
+          - DeviceName: "/dev/sda1"
+            Ebs:
+              VolumeSize: 8
+              VolumeType: gp2
+        Monitoring:
+          Enabled: true
+        UserData:
+          "Fn::Base64":
+            !Sub |
+            #!/bin/bash -xe
+            ########################################
+            ## CloudFormation Instances Bootstrap ##
+            ########################################
+            sudo apt-get update
+            sudo apt-get -yq install privoxy
+            echo "listen-address  0.0.0.0:${PrivoxyPort}" |sudo tee /etc/privoxy/config
+            sudo systemctl enable privoxy
+            sudo systemctl restart privoxy
+
+  ###############################
+  ###############################
+  ###############################
+  ###############################
+
+  ###############################
+  ###############################
+  ###############################
+  ###############################
+  ###############################
+
+  AutoScalingGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime : PT5M
+        WaitOnResourceSignals: true
+    Properties:
+      Cooldown: '600'
+      HealthCheckGracePeriod: '300'
+      AvailabilityZones: !Ref AvailabilityZones
+      VPCZoneIdentifier: !Ref Subnets
+      HealthCheckType: EC2
+      LaunchTemplate:
+        LaunchTemplateName: !Join ['',["template", !Ref "AWS::StackName"]]
+        Version: !GetAtt LaunchConfig.LatestVersionNumber
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref MinSize
+      TerminationPolicies:
+        - OldestInstance
+      Tags:
+        -
+          Key: Network
+          Value: Public
+          PropagateAtLaunch: 'true'
+        -
+          Key: Name
+          Value: 'privoxy'
+          PropagateAtLaunch: 'true'
+
+Outputs:
+  AutoScalingGroup:
+    Description: 'Auto Scaling Group'
+    Value: !Ref AutoScalingGroup
+  LaunchConfig:
+    Description: 'Launch Configuration'
+    Value: !Ref LaunchConfig
