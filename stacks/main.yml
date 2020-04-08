@@ -63,7 +63,9 @@ Resources:
         AvailabilityZones: !GetAtt VpcStack.Outputs.AvailabilityZones
 
 Outputs:
+  PublisDNS:
+    Value: !GetAtt Autoscalling.Outputs.PublisDNS
   AutoscallingGroupId:
     Value: !GetAtt Autoscalling.Outputs.AutoScalingGroup
   PrivoxyPort:
-    Value: !Ref PrivoxyPort
+    Value: !Ref ProxyPort

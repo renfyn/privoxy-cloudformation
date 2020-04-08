@@ -2,7 +2,7 @@
 
 ## About
 
-It's an AWS cloudformation stack to create your own privoxy server using spot instance.
+It's an AWS cloudformation stack to create your own sock proxy server using spot instance.
 
 ## Requirements
 
@@ -41,9 +41,9 @@ export NbAzs=$(sh ./bin/getRegionAzs.sh $AWS_PROFILE $AWS_REGION)
 
 export appName=privoxy
 export stack_name=$(appName)-$(AWS_REGION)
-export PrivoxyPort=8118
-export PrivoxyMinSize=1
-export PrivoxyMaxSize=1
+export ProxyPort=1080
+export ProxyMinSize=1
+export ProxyMaxSize=1
 export InstanceType=t2.micro
 ```
 

@@ -31,7 +31,6 @@ Parameters:
       - t2.nano
       - t2.micro
       - t3.micro
-      - c5.2xlarge
   Subnets:
     Type: 'List<AWS::EC2::Subnet::Id>'
     Description: 'Vpc Public Subnet list'
@@ -40,7 +39,8 @@ Parameters:
     Type: 'List<AWS::EC2::AvailabilityZone::Name>'
 
 Resources:
-  CodaRole:
+
+  ProxyRole:
     Type: AWS::IAM::Role
     Properties:
       Path: "/application/"
@@ -74,7 +74,7 @@ Resources:
     Properties:
       Path: /
       Roles:
-        - !Ref CodaRole
+        - !Ref ProxyRole
 
   LoadBalancerSg:
     Type: AWS::EC2::SecurityGroup
@@ -83,6 +83,10 @@ Resources:
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
+          FromPort: !Ref ProxyPort
+          ToPort: !Ref ProxyPort
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
           FromPort: !Ref ProxyPort
           ToPort: !Ref ProxyPort
           CidrIp: 0.0.0.0/0
@@ -100,18 +104,46 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: ProxyPort
-          ToPort: ProxyPort
-          CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: !Ref Subnets
+      Name: !Sub 'proxy-loadbalancer' 
+      Scheme: internet-facing
+      Type: network
+
+  LoadBalancerTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 20
+      HealthyThresholdCount: 2
+      HealthCheckProtocol: TCP
+      HealthCheckTimeoutSeconds: 10
+      HealthCheckPort: 'traffic-port'
+      Name: !Sub 'proxy-target-group-${ProxyPort}'
+      UnhealthyThresholdCount: 2
+      Port: !Ref ProxyPort
+      Protocol: TCP_UDP
+      VpcId: !Ref VpcId
+
+  LoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref LoadBalancerTargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: !Ref ProxyPort
+      Protocol: TCP_UDP
+
   LaunchConfig:
     Type: AWS::EC2::LaunchTemplate
     Properties:
-      LaunchTemplateName: !Join ['',["template", !Ref "AWS::StackName"]]
+      LaunchTemplateName: proxy-template
       LaunchTemplateData:
         ImageId: !Ref AmiId
         InstanceType: !Ref InstanceType
@@ -120,6 +152,7 @@ Resources:
           Arn: !GetAtt Profile.Arn
         SecurityGroupIds:
           - !Ref SecurityGroup
+          - !Ref LoadBalancerSg
         InstanceMarketOptions:
           MarketType: spot
         BlockDeviceMappings:
@@ -137,10 +170,34 @@ Resources:
             ## CloudFormation Instances Bootstrap ##
             ########################################
             sudo apt-get update
-            sudo apt-get -yq install privoxy
-            echo "listen-address  0.0.0.0:${ProxyPort}" |sudo tee /etc/privoxy/config
-            sudo systemctl enable privoxy
-            sudo systemctl restart privoxy
+            sudo apt-get -yq install dante-server
+            mv /etc/danted.conf /etc/danted.conf.bak
+            echo "logoutput: /var/log/socks.log 
+            internal: 0.0.0.0 port = ${ProxyPort} 
+            external: eth0
+            clientmethod: none 
+            socksmethod: none 
+            user.privileged: root 
+            user.notprivileged: nobody 
+            user.libwrap: nobody 
+            client pass { 
+                    from: 0.0.0.0/0 to: 0.0.0.0/0 
+                    log: error connect disconnect 
+            } 
+            client block {
+                    from: 0.0.0.0/0 to: 0.0.0.0/0
+                    log: connect error
+            }
+            socks pass {
+                    from: 0.0.0.0/0 to: 0.0.0.0/0
+                    log: error connect disconnect
+            }
+            socks block {
+                    from: 0.0.0.0/0 to: 0.0.0.0/0
+                    log: connect error
+            }" > /etc/danted.conf
+            systemctl start danted
+            systemctl status danted
 
   ###############################
   ###############################
@@ -169,8 +226,10 @@ Resources:
       AvailabilityZones: !Ref AvailabilityZones
       VPCZoneIdentifier: !Ref Subnets
       HealthCheckType: EC2
+      TargetGroupARNs: 
+        - !Ref LoadBalancerTargetGroup
       LaunchTemplate:
-        LaunchTemplateName: !Join ['',["template", !Ref "AWS::StackName"]]
+        LaunchTemplateName: proxy-template
         Version: !GetAtt LaunchConfig.LatestVersionNumber
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
@@ -191,6 +250,9 @@ Outputs:
   AutoScalingGroup:
     Description: 'Auto Scaling Group'
     Value: !Ref AutoScalingGroup
+  PublisDNS:
+    Description: 'ALB public DNS'
+    Value: !GetAtt LoadBalancer.DNSName
   LaunchConfig:
     Description: 'Launch Configuration'
     Value: !Ref LaunchConfig
