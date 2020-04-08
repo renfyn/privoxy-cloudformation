@@ -19,7 +19,7 @@ Parameters:
     Description: 'The Max Size for the AutoScalingGroup.'
     Type: Number
     Default: 1
-  PrivoxyPort:
+  ProxyPort:
     Description: 'Your Privoxy port number'
     Type: Number
     Default: 8118
@@ -76,10 +76,24 @@ Resources:
       Roles:
         - !Ref CodaRole
 
+  LoadBalancerSg:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ALB Proxy security group"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ProxyPort
+          ToPort: !Ref ProxyPort
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: "Coda security group"
+      GroupDescription: "Proxy security group"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -87,8 +101,8 @@ Resources:
           ToPort: 22
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: !Ref PrivoxyPort
-          ToPort: !Ref PrivoxyPort
+          FromPort: ProxyPort
+          ToPort: ProxyPort
           CidrIp: 0.0.0.0/0
       SecurityGroupEgress:
         - IpProtocol: -1
@@ -124,7 +138,7 @@ Resources:
             ########################################
             sudo apt-get update
             sudo apt-get -yq install privoxy
-            echo "listen-address  0.0.0.0:${PrivoxyPort}" |sudo tee /etc/privoxy/config
+            echo "listen-address  0.0.0.0:${ProxyPort}" |sudo tee /etc/privoxy/config
             sudo systemctl enable privoxy
             sudo systemctl restart privoxy
 
@@ -170,7 +184,7 @@ Resources:
           PropagateAtLaunch: 'true'
         -
           Key: Name
-          Value: 'privoxy'
+          Value: 'proxy'
           PropagateAtLaunch: 'true'
 
 Outputs:

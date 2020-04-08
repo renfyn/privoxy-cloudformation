@@ -14,20 +14,19 @@ Parameters:
       - t2.nano
       - t2.micro
       - t3.micro
-      - c5.2xlarge
   # Coda Parameters
   AmiId:
     Description: 'AMI id for Coda server.'
     Type: AWS::EC2::Image::Id
-  PrivoxyMinSize:
+  ProxyMinSize:
     Description: 'The Min Size for the Privoxy AutoScale group.'
     Type: Number
     Default: 1
-  PrivoxyMaxSize:
+  ProxyMaxSize:
     Description: 'The Max Size for the Privoxy AutoScale group.'
     Type: Number
     Default: 1
-  PrivoxyPort:
+  ProxyPort:
     Description: 'Your Privoxy port number'
     Type: Number
     Default: 8118
@@ -55,10 +54,10 @@ Resources:
       Parameters:
         VpcId: !GetAtt VpcStack.Outputs.Vpc
         AmiId: !Ref AmiId
-        PrivoxyPort: !Ref PrivoxyPort
+        ProxyPort: !Ref ProxyPort
         KeyName: !Ref KeyName
-        MinSize: !Ref PrivoxyMinSize
-        MaxSize: !Ref PrivoxyMaxSize
+        MinSize: !Ref ProxyMinSize
+        MaxSize: !Ref ProxyMaxSize
         InstanceType: !Ref InstanceType
         Subnets: !GetAtt VpcStack.Outputs.PublicSubnets
         AvailabilityZones: !GetAtt VpcStack.Outputs.AvailabilityZones

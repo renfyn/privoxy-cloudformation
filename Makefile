@@ -19,9 +19,9 @@ stack_name?=$(appName)-$(AWS_REGION)
 AWS_SOURCE_AMI?=$(shell ./bin/detect-ami.sh $AWS_PROFILE $AWS_REGION)
 AWS_INSTANCE_TYPE?=t2.micro
 NbAzs?=$(shell ./bin/getRegionAzs.sh $AWS_PROFILE $AWS_REGION)
-PrivoxyPort?=8118
-PrivoxyMinSize?=1
-PrivoxyMaxSize?=1
+ProxyPort?=8118
+ProxyMinSize?=1
+ProxyMaxSize?=1
 InstanceType?=t2.micro
 
 ## Update aws-cli
@@ -51,9 +51,9 @@ deploy: package
         	AmiId=$(AWS_SOURCE_AMI) \
 			InstanceType=$(InstanceType) \
 			NumberOfAZs=$(NbAzs) \
-			PrivoxyPort=$(PrivoxyPort) \
-			PrivoxyMinSize=$(PrivoxyMinSize) \
-			PrivoxyMaxSize=$(PrivoxyMaxSize)
+			ProxyPort=$(ProxyPort) \
+			ProxyMinSize=$(ProxyMinSize) \
+			ProxyMaxSize=$(ProxyMaxSize)
 
 ## Describe Cloud Formation stack outputs
 describe:
