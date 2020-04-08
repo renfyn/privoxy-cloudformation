@@ -33,7 +33,7 @@ jobs:
         ROLE_ARN: ${{ secrets.ROLE_ARN }}
         BUCKET: ${{ secrets.BUCKET }}
         AWS_KEY_NAME: ${{ secrets.AWS_KEY_NAME }}
-        PrivoxyPort: ${{ secrets.PRIVOXY_PORT }}
+        ProxyPort: ${{ secrets.PRIVOXY_PORT }}
       run: |
         export NbAzs=$(sh ./bin/getRegionAzs.sh $AWS_PROFILE $AWS_REGION)
         export AWS_SOURCE_AMI=$(sh ./bin/detect-ami.sh $AWS_PROFILE $AWS_REGION)
