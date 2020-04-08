@@ -119,7 +119,7 @@ Resources:
   LoadBalancerTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      HealthCheckIntervalSeconds: 20
+      HealthCheckIntervalSeconds: 30
       HealthyThresholdCount: 2
       HealthCheckProtocol: TCP
       HealthCheckTimeoutSeconds: 10
