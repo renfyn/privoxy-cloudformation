@@ -43,7 +43,7 @@ Parameters:
     Default: 'false'
 
 Conditions:
-  NightlyOutCond: !Equals [ NightlyOut , 'true' ]
+  NightlyOutCond: !Equals [ !Ref NightlyOut , 'true' ]
 
 Resources:
 

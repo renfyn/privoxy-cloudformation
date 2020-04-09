@@ -20,7 +20,7 @@ ifeq ($% , deploy)
 
 endif
 
-appName?=privoxy
+appName?=proxy
 stack_name?=$(appName)-$(AWS_REGION)
 AWS_SOURCE_AMI?=$(shell ./bin/detect-ami.sh $AWS_PROFILE $AWS_REGION)
 AWS_INSTANCE_TYPE?=t2.micro

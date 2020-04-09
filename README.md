@@ -39,7 +39,7 @@ export NbAzs=$(sh ./bin/getRegionAzs.sh $AWS_PROFILE $AWS_REGION)
 ```bash
 # with default values
 
-export appName=privoxy
+export appName=proxy
 export stack_name=$(appName)-$(AWS_REGION)
 export ProxyPort=1080
 export ProxyMinSize=1
