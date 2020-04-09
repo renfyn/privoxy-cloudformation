@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description: Coda infrastructure as code templates
+Description: Proxy Sock5 infrastructure as code templates
 
 Parameters:
   KeyName:
@@ -14,7 +14,6 @@ Parameters:
       - t2.nano
       - t2.micro
       - t3.micro
-  # Coda Parameters
   AmiId:
     Description: 'AMI id for Coda server.'
     Type: AWS::EC2::Image::Id
@@ -29,11 +28,15 @@ Parameters:
   ProxyPort:
     Description: 'Your Privoxy port number'
     Type: Number
-    Default: 8118
+    Default: 1080
   NumberOfAZs:
     Description: 'The Max NUmber of Subnets (one by AZ)'
     Type: Number
     Default: 1
+  NightlyOut:
+    Type: String
+    Description: "stop instance on evening"
+    Default: 'false'
 
 Resources:
   VpcStack:
@@ -61,8 +64,25 @@ Resources:
         InstanceType: !Ref InstanceType
         Subnets: !GetAtt VpcStack.Outputs.PublicSubnets
         AvailabilityZones: !GetAtt VpcStack.Outputs.AvailabilityZones
+        NightlyOut: !Ref NightlyOut
+
+  UserStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn:
+      - Autoscalling
+    Properties:
+      TemplateURL: user.yml
+      TimeoutInMinutes: 60
+      Parameters:
+        AutoscallingGroup: !GetAtt Autoscalling.Outputs.AutoScalingGroup
 
 Outputs:
+  ManagerUserAccessKey:
+    Description: "Manager user Access Key"
+    Value: !GetAtt UserStack.Outputs.ManagerUserAccessKey
+  ManagerUserSecretKey:
+    Description: "Manager user Secret Key"
+    Value: !GetAtt UserStack.Outputs.ManagerUserSecretKey
   PublisDNS:
     Value: !GetAtt Autoscalling.Outputs.PublisDNS
   AutoscallingGroupId:

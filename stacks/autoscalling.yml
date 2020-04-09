@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "Privoxy spot Stack"
+Description: "Proxy spot Stack"
 
 Parameters:
   VpcId:
@@ -22,7 +22,7 @@ Parameters:
   ProxyPort:
     Description: 'Your Privoxy port number'
     Type: Number
-    Default: 8118
+    Default: 1080
   InstanceType:
     Description: "EC2 instance type."
     ConstraintDescription: 'must be a valid EC2 instance type.'
@@ -37,6 +37,13 @@ Parameters:
   AvailabilityZones:
     Description: 'Availability zones to use for autoscaling'
     Type: 'List<AWS::EC2::AvailabilityZone::Name>'
+  NightlyOut:
+    Type: String
+    Description: "stop instance on evening"
+    Default: 'false'
+
+Conditions:
+  NightlyOutCond: !Equals [ NightlyOut , 'true' ]
 
 Resources:
 
@@ -245,6 +252,15 @@ Resources:
           Key: Name
           Value: 'proxy'
           PropagateAtLaunch: 'true'
+
+  ScheduledActionOut: 
+    Condition: NightlyOutCond
+    Type: AWS::AutoScaling::ScheduledAction
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      MaxSize: 0
+      MinSize: 0
+      Recurrence: "0 21 * * *"
 
 Outputs:
   AutoScalingGroup:

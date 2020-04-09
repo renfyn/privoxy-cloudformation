@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Privoxy spot Stack"
+
+Parameters:
+  AutoscallingGroup:
+    Description: 'autoscalling group Name'
+    Type: String
+
+Resources:
+  ManagerUser:
+    Type: AWS::IAM::User
+      
+  ManagerUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      Status: Active
+      UserName: !Ref ManagerUser
+
+  ManagerUserPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ManagerUserPolicy
+      Users:
+        - !Ref ManagerUser
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Action:
+              - cloudformation:DescribeStacks
+            Effect: Allow
+            Resource: "*"
+          -
+            Action:
+              - autoscaling:UpdateAutoScalingGroup
+            Effect: Allow
+            Resource: !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${AutoscallingGroup}"
+
+Outputs:
+  ManagerUserAccessKey:
+    Description: "Manager user Access Key"
+    Value: !Ref ManagerUserAccessKey
+  ManagerUserSecretKey:
+    Description: "Manager user Secret Key"
+    Value: !GetAtt ManagerUserAccessKey.SecretAccessKey

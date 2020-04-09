@@ -45,7 +45,10 @@ export ProxyPort=1080
 export ProxyMinSize=1
 export ProxyMaxSize=1
 export InstanceType=t2.micro
+export NightlyOut?=false
 ```
+
+NightlyOut active a schedule to disable autoscaling group every day at 21.  
 
 ## Installation
 
@@ -53,3 +56,19 @@ export InstanceType=t2.micro
 make deploy
 make describe
 ```
+
+## Stack outputs
+
+Stack provides credentials you can find in outputs.  
+  
+create a new AWS profile to call :  
+  
+```bash
+# to enable autoscaling group
+make start
+# or
+# to disable autoscaling group
+make stop
+```
+Before you have to declare AWS_PROFILE (with yout new profile name) and AWS_REGION.  
+Precise stack_name if you had overload it.  
