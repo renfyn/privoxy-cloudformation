@@ -34,6 +34,7 @@ jobs:
         BUCKET: ${{ secrets.BUCKET }}
         AWS_KEY_NAME: ${{ secrets.AWS_KEY_NAME }}
         ProxyPort: ${{ secrets.PRIVOXY_PORT }}
+        NightlyOut: ${{ secrets.NightlyOut }}
       run: |
         export NbAzs=$(sh ./bin/getRegionAzs.sh $AWS_PROFILE $AWS_REGION)
         export AWS_SOURCE_AMI=$(sh ./bin/detect-ami.sh $AWS_PROFILE $AWS_REGION)
